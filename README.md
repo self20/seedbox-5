@@ -15,17 +15,18 @@ You're welcome to check the redirect yourself. It's a simple URL shortener.
 ```
 Then to install
 ```
+chmod +x install_seedbox
 sudo ./install_seedbox
 ```
 
 ### My back story
-This base script has been put together by me (bbashy) using my knowledge in setting up rTorrent/libTorrent/ruTorrent.
-I try to use the latest versions for things, many other scripts use Apache, which is fine... I just prefer Nginx. I run the exact same setup
-and it runs perfectly, I seed every version of Mint, Debian, Ubuntu and Arch Linux OSs.
+This base script has been put together by me (bbashy) using my knowledge in setting up rTorrent/libTorrent/ruTorrent as well as the Linux OS.
+I try to use the latest versions for things, many other scripts use Apache, which is fine... I just prefer Nginx. I run the exact same setup myself
+and it runs perfectly, I seed every version of Mint, Debian, Ubuntu and Arch Linux OSs in TBs.
 
 ### Notice
 I do not know much bash scripting but I'm testing this script heavily so it will be pretty stable. If you see something wrong or a part that
-could be done better. Please let me know in the issues or open a pull request fixing it (please explain the problem and how it makes it better).
+could be done better, please let me know in the issues or open a pull request fixing it (please explain the problem and how it makes it better).
 
 ### Important
 I do not take responsibility if this script causes any system errors, loss of data or problems with your server or machine.
