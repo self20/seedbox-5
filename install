@@ -323,15 +323,15 @@ openssl x509 -req -days 1460 -in /etc/nginx/ssl/rutorrent.csr -signkey /etc/ngin
 
 # Output virtual host data into Nginx folder
 function create_nginx_config {
-	curl -Ls $NGINXCONF | sed -e "s/\${WEB_USER}/$WEB_USER/"
+	curl -Ls $NGINXCONF | sed -e "s/\###WEB_USER###/${WEB_USER}/"
 }
 
 # Output virtual host data into Nginx folder
 function create_rutorrent_vhost {
 	curl -Ls $NGINXVHOST |
-	sed -e "s/\${HOSTNAME}/$HOSTNAME/" |
-	sed -e "s/\${WEB_USER}/$WEB_USER/" |
-	sed -e "s/\${USER}/$USER/"
+	sed -e "s/\###HOSTNAME###/${HOSTNAME}/" |
+	sed -e "s/\###WEB_USER###/${WEB_USER}/" |
+	sed -e "s/\###USER###/${USER}/"
 }
 
 create_nginx_config > /etc/nginx/nginx.conf
