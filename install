@@ -147,6 +147,7 @@ while [ $con -eq 0 ]; do
 		echo
 		echo "${C_WARNING}Error: You can't use 'nobody' as the user!$C_END"
 	else
+		HOMEDIR=$(cat /etc/passwd | grep "$USER": | cut -d: -f6);
 		con=1
 	fi
 done
