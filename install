@@ -15,7 +15,7 @@ LIBTORRENT="0.13.4"
 XMLRPC="latest" # change this to "latest" for latest release
 PHP="5.6"
 
-# Use a mirror for the files, these are directly from the main site. They're on my server with 1Gb connection
+# Use a mirror for the files, these are directly from the main site. They're on a personal server with 1Gb connection
 MIRROR=true
 
 # Ports for Nginx server to listen on
@@ -271,10 +271,10 @@ cd /tmp/libtorrent-$LIBTORRENT
 make
 make install
 
-# Compile rTorrent
+# Compile rTorrent (needs --prefix=/usr if 7?)
 cd /tmp/rtorrent-$RTORRENT
 ./autogen.sh
-./configure --prefix=/usr --with-xmlrpc-c
+./configure --with-xmlrpc-c
 make
 make install
 
@@ -282,7 +282,7 @@ make install
 ldconfig
 
 # Remove the shit left behind
-cd /tmp && rm -rf libtorrent* rtorrent* xmlrpc*
+rm -rf /tmp/bbashy-seedbox
 
 # Create web server sites directory and clone the git repo for ruTorrent
 su - $WEB_USER -c "mkdir sites logs && cd sites && git clone $RUTORRENT_GIT rutorrent"
