@@ -29,6 +29,11 @@ function GET_SERVER_IP {
 	SERVER_IP="$(curl -Ls https://bashy.im/ip)"
 }
 
+function MAKE_TEMP_PATH {
+	mkdir -vp /tmp/bbashy-seedbox
+	TEMP_PATH="/tmp/bbashy-seedbox"
+}
+
 # Find an echo that supports -e
 echo=echo
 for cmd in echo /bin/echo; do
@@ -231,7 +236,7 @@ apt-get update
 apt-get install -y nginx php5-fpm php5-curl php5-cli php5-mcrypt php5
 
 # Download library and client, possible mirror which is settable at the top of this file
-cd /tmp
+MAKE_TEMP_PATH && cd $TEMP_PATH
 
 if [ $MIRROR = true ]; then
 	# libTorrent
@@ -259,20 +264,20 @@ mkdir xmlrpc-c-$XMLRPC &&
 tar -zxvf xmlrpc-c-$XMLRPC.tar.gz --strip 1 -C xmlrpc-c-$XMLRPC
 
 # Compile XMLRPC
-cd /tmp/xmlrpc-c-$XMLRPC
+cd xmlrpc-c-$XMLRPC
 ./configure --disable-cplusplus
 make
 make install
 
 # Compile libTorrent
-cd /tmp/libtorrent-$LIBTORRENT
+cd libtorrent-$LIBTORRENT
 ./autogen.sh
 ./configure
 make
 make install
 
 # Compile rTorrent (needs --prefix=/usr if 7?)
-cd /tmp/rtorrent-$RTORRENT
+cd rtorrent-$RTORRENT
 ./autogen.sh
 ./configure --with-xmlrpc-c
 make
@@ -282,7 +287,7 @@ make install
 ldconfig
 
 # Remove the shit left behind
-rm -rf /tmp/bbashy-seedbox
+rm -rf $TEMP_PATH
 
 # Create web server sites directory and clone the git repo for ruTorrent
 su - $WEB_USER -c "mkdir sites logs && cd sites && git clone $RUTORRENT_GIT rutorrent"
