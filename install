@@ -287,7 +287,14 @@ make install
 ldconfig
 
 # Remove the shit left behind
-rm -rf $TEMP_PATH
+read -p "${C_RED}Please confirm the deletion of this path ($TEMP_PATH), there's no turning back afterwards. Type N/n/no to continue without deleting or Y/y/yes to delete [y/N]$C_END " confirm </dev/tty
+case "$confirm" in
+	N|n|no|*)
+		;;
+	Y|y|yes)
+		rm -rf $TEMP_PATH
+		;;
+esac
 
 # Create web server sites directory and clone the git repo for ruTorrent
 su - $WEB_USER -c "mkdir sites logs && cd sites && git clone $RUTORRENT_GIT rutorrent"
