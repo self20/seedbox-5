@@ -1,29 +1,31 @@
 #!/bin/bash
 set -u
 
-# GitHub Settings
+## GitHub Settings
 GITHUB_USERNAME="bbashy"
 GITHUB_REPO="seedbox"
 GITHUB_BRANCH="master"
 GITHUB_URL="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}"
 
-# CONFIGURATION
+## CONFIGURATION
 RUTORRENT_GIT="https://github.com/Novik/ruTorrent.git"
 RTORRENT="0.9.4"
 LIBTORRENT="0.13.4"
-# XMLRPC="1.25.29" # works
+## XMLRPC="1.25.29" # works
 XMLRPC="latest" # change this to "latest" for latest release
 PHP="5.6"
 
-# Use a mirror for the files, these are directly from the main site. They're on a personal server with 1Gb connection
+## Use a mirror for the files, these are directly from the main site. They're on a personal server with 1Gb connection
 MIRROR=true
 
-# Ports for Nginx server to listen on
+## Ports for Nginx server to listen on
 HTTP_PORT=444
 HTTPS_PORT=888
 
+## Locations for config files
 NGINXCONF="$GITHUB_URL/resources/nginx.conf"
-NGINXVHOST="$GITHUB_URL/resources/rutorrent"
+NGINX_VHOST="$GITHUB_URL/resources/rutorrent"
+NGINX_VHOST_SSL="$GITHUB_URL/resources/rutorrent_ssl"
 
 function GET_SERVER_IP {
 	SERVER_IP="$(curl -Ls https://bashy.im/ip)"
@@ -34,7 +36,19 @@ function MAKE_TEMP_PATH {
 	TEMP_PATH="/tmp/bbashy-seedbox"
 }
 
-# Find an echo that supports -e
+function GET_OS_VERSION {
+	OS_VERSION=awk -F= '/^ID/{print $2}' /etc/os-release
+
+	if [ OS_VERSION -eq "debian" ]; then
+		return 'debian'
+	elif [ OS_VERSION -eq "ubuntu" ]; then
+		return 'ubuntu'
+	else
+		return 'unknown'
+	fi
+}
+
+## Find an echo that supports -e
 echo=echo
 for cmd in echo /bin/echo; do
 	$cmd >/dev/null 2>&1 || continue
@@ -44,7 +58,7 @@ for cmd in echo /bin/echo; do
 	fi
 done
 
-# Colours for messages throughout the script
+## Colours for text throughout the script
 CSI=$($echo -e "\033[")
 C_CYAN="${CSI}1;36m"
 C_GREEN="${CSI}1;32m"
@@ -70,18 +84,18 @@ EOF
 	exit 1
 }
 
-# Run user command, ignoring data sent to stdout
+## Run user command, ignoring data sent to stdout
 runUserCmd() {
 	su - \$USER -c "\$USER_INIT; \$1" >/dev/null && return 0
 	return 1
 }
 
-# Check we're root
+## Check we're root
 if [ "$(id -u)" != "0" ]; then
 	fullExit "Run this script as root (with sudo)."
 fi
 
-# License
+## License
 echo "This was made by Ben Sampson - bashy.im - check LICENSE.txt for details
 -----------------------------------------------------------------------------
 
@@ -120,11 +134,11 @@ case "$confirm" in
 		;;
 esac
 
-# Generate locales
+## Generate locales
 locale-gen en_GB en_GB.UTF-8
-#dpkg-reconfigure locales
+# dpkg-reconfigure locales
 
-# Prompting for system user.
+## Prompting for system user.
 con=0
 while [ $con -eq 0 ]; do
 	echo -n "${C_GREEN}Enter system username for seedbox files:$C_END "
@@ -133,17 +147,15 @@ while [ $con -eq 0 ]; do
 	if [ -z "$USER" ]; then
 		echo "${C_WARNING}Error: You must enter a system user!!$C_END"
 	elif [ -z $(cat /etc/passwd | grep "^$USER:") ]; then
-		read -p "${C_GREEN}This user ($USER) does not exist, would you like to create it? [y/N/c]$C_END " confirm </dev/tty
+		read -p "${C_GREEN}This user ($USER) does not exist, would you like to create it? [Y/n/c]$C_END " confirm </dev/tty
 		case "$confirm" in
-			y|Y|yes)
+			y|Y|yes|*)
 				adduser $USER;
 				con=1
 				HOMEDIR=$(cat /etc/passwd | grep "$USER": | cut -d: -f6);
 				;;
 			c|C|cancel)
 				exit 1
-				;;
-			*)
 				;;
 		esac
 	elif [ $(cat /etc/passwd | grep "^$USER:" | cut -d: -f3) -lt 999 ]; then
@@ -157,17 +169,17 @@ while [ $con -eq 0 ]; do
 	fi
 done
 
-read -p "${C_GREEN}These folders will be added to the directory $HOMEDIR/rtorrent/(downloads|watch|.session|.sockets), proceed? [y/C]$C_END " confirm </dev/tty
+read -p "${C_GREEN}These folders will be added to the directory $HOMEDIR/rtorrent/(downloads, watch, .session, .sockets). Proceed? [Y/c]$C_END " confirm </dev/tty
 case "$confirm" in
-	y|Y|yes)
-		su - $USER -c "mkdir -p rtorrent/{downloads,.session,watch,.sockets}"
+	y|Y|yes|*)
+		su - $USER -c "mkdir -vp rtorrent/{downloads,.session,watch,.sockets}"
 		;;
-	*)
+	C|c|cancel)
 		exit 1
 		;;
 esac
 
-# Add the user which will hold the ruTorrent folders for Nginx
+## Add the user which will hold the ruTorrent folders for Nginx
 function WEBSITE_USER {
 	con=0
 	while [ $con -eq 0 ]; do
@@ -205,27 +217,27 @@ function WEBSITE_USER {
 
 }
 
-# Run create user for website files
+## Run create user for website files
 WEBSITE_USER
 
-# If no user is set, redo function
+## If no user is set, redo function
 if [ -z $(cat /etc/passwd | grep "$WEB_USER":) ]; then
 	WEBSITE_USER
 fi
 
-# rTorrent / libTorrent / ruTorrent - install & compile
+## rTorrent / libTorrent / ruTorrent - install & compile
 
-# Install some required packages
+## Install some required packages
 apt-get update
 apt-get install -y unrar-free unzip git screen curl openssl apache2-utils \
 python-software-properties build-essential automake libtool libssl-dev \
 libsigc++-2.0-dev zlib1g-dev libcurl4-openssl-dev libncurses5-dev libcppunit-dev
 
-# Add Nginx and PHP repositories
-add-apt-repository "deb http://nginx.org/packages/mainline/debian/ wheezy nginx"
-add-apt-repository "deb http://packages.dotdeb.org wheezy-php56 all"
+## Add Nginx and PHP repositories
+add-apt-repository "deb http://nginx.org/packages/mainline/debian/ jessie nginx"
+add-apt-repository "deb http://packages.dotdeb.org jessie all"
 
-# Setup Nginx for our web server
+## Setup Nginx for our web server
 curl -LO http://nginx.org/keys/nginx_signing.key
 curl -LO http://www.dotdeb.org/dotdeb.gpg
 apt-key add nginx_signing.key
@@ -235,58 +247,58 @@ rm nginx_signing.key dotdeb.gpg
 apt-get update
 apt-get install -y nginx php5-fpm php5-curl php5-cli php5-mcrypt php5
 
-# Download library and client, possible mirror which is settable at the top of this file
+## Download library and client, possible mirror which is settable at the top of this file
 MAKE_TEMP_PATH && cd $TEMP_PATH
 
 if [ $MIRROR = true ]; then
-	# libTorrent
+	## libTorrent
 	curl -LO https://bashy.im/o/libtorrent-$LIBTORRENT.tar.gz
-	# rTorrent
+	## rTorrent
 	curl -LO https://bashy.im/o/rtorrent-$RTORRENT.tar.gz
 else
-	# libTorrent
+	## libTorrent
 	curl -LO http://libtorrent.rakshasa.no/downloads/libtorrent-$LIBTORRENT.tar.gz
-	# rTorrent
+	## rTorrent
 	curl -LO http://libtorrent.rakshasa.no/downloads/rtorrent-$RTORRENT.tar.gz
 fi
 
-# XMLRPC
+## XMLRPC
 if [ $XMLRPC = "latest" ]; then
 	curl -L http://sourceforge.net/projects/xmlrpc-c/files/latest/download -o xmlrpc-c-latest.tar.gz
 else
 	curl -LO https://bashy.im/o/xmlrpc-c-$XMLRPC.tar.gz
 fi
 
-# Extract libraries
+## Extract libraries
 tar -zxvf libtorrent-$LIBTORRENT.tar.gz &&
 tar -zxvf rtorrent-$RTORRENT.tar.gz &&
 mkdir xmlrpc-c-$XMLRPC &&
 tar -zxvf xmlrpc-c-$XMLRPC.tar.gz --strip 1 -C xmlrpc-c-$XMLRPC
 
-# Compile XMLRPC
+## Compile XMLRPC
 cd xmlrpc-c-$XMLRPC
 ./configure --disable-cplusplus
 make
 make install
 
-# Compile libTorrent
+## Compile libTorrent
 cd libtorrent-$LIBTORRENT
 ./autogen.sh
 ./configure
 make
 make install
 
-# Compile rTorrent (needs --prefix=/usr if 7?)
+## Compile rTorrent (needs --prefix=/usr if 7?)
 cd rtorrent-$RTORRENT
 ./autogen.sh
 ./configure --with-xmlrpc-c
 make
 make install
 
-# Create the necessary links and cache to the most recent shared libraries
+## Create the necessary links and cache to the most recent shared libraries
 ldconfig
 
-# Remove the shit left behind
+## Remove the shit left behind
 read -p "${C_RED}Please confirm the deletion of this path ($TEMP_PATH), there's no turning back afterwards. Type N/n/no to continue without deleting or Y/y/yes to delete [y/N]$C_END " confirm </dev/tty
 case "$confirm" in
 	N|n|no|*)
@@ -296,60 +308,80 @@ case "$confirm" in
 		;;
 esac
 
-# Create web server sites directory and clone the git repo for ruTorrent
+## Create web server sites directory and clone the git repo for ruTorrent
 su - $WEB_USER -c "mkdir sites logs && cd sites && git clone $RUTORRENT_GIT rutorrent"
 
-# Modify php.ini for larger file uploads (torrents)
-sed -i -e '/upload_max_filesize =/ s/= .*/= 100M/' /etc/php5/fpm/php.ini
-sed -i -e '/post_max_size =/ s/= .*/= 125M/' /etc/php5/fpm/php.ini
+## Modify php.ini for larger file uploads (torrents)
 sed -i -e '/memory_limit =/ s/= .*/= 256M/' /etc/php5/fpm/php.ini # Possibly change this higher/lower.
+sed -i -e '/post_max_size =/ s/= .*/= 125M/' /etc/php5/fpm/php.ini
+sed -i -e '/upload_max_filesize =/ s/= .*/= 100M/' /etc/php5/fpm/php.ini
 sed -i -e 's/;date.timezone.*/date.timezone = UTC/' /etc/php5/fpm/php.ini
 sed -i -e 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php5/fpm/php.ini
 
-sed -i "s/user = www-data/user = nginx/" /etc/php5/fpm/pool.d/www.conf
-sed -i "s/group = www-data/group = nginx/" /etc/php5/fpm/pool.d/www.conf
+# sed -i "s/user = www-data/user = nginx/" /etc/php5/fpm/pool.d/www.conf
+# sed -i "s/group = www-data/group = nginx/" /etc/php5/fpm/pool.d/www.conf
 
 sed -i "s/;listen\.owner.*/listen.owner = nginx/" /etc/php5/fpm/pool.d/www.conf
 sed -i "s/;listen\.group.*/listen.group = nginx/" /etc/php5/fpm/pool.d/www.conf
-# Following not required really
+## The following is not required but might depending on OS setup
 # sed -i "s/;listen\.mode.*/listen.mode = 0660/" /etc/php5/fpm/pool.d/www.conf
 
-# Add the newly created webserveruser to nginx
-usermod -a -G nginx $WEB_USER
+## Add the newly created webserveruser to nginx
+usermod -a -G www-data $WEB_USER
 id $WEB_USER
 groups $WEB_USER
 
-# Create htpasswd like file for basic auth login
+## Create htpasswd like file for basic auth login
 echo
 echo "Enter a new ruTorrent frontend password for $USER"
 htpasswd -c /home/${USER}/rutorrent_passwords $USER
 
-# Copy over Nginx files and enable new ruTorrent site
+## Copy over Nginx files and enable new ruTorrent site
 echo
-echo "Creating SSL certificate, please enter some random details"
-mkdir /etc/nginx/{ssl,sites-available,sites-enabled}
-# Creating OpenSSL certificate
-openssl genrsa -out /etc/nginx/ssl/rutorrent.key 1024
-openssl req -new -key /etc/nginx/ssl/rutorrent.key -out /etc/nginx/ssl/rutorrent.csr
-openssl x509 -req -days 1460 -in /etc/nginx/ssl/rutorrent.csr -signkey /etc/nginx/ssl/rutorrent.key -out /etc/nginx/ssl/rutorrent.crt
+mkdir -vp /etc/nginx/{ssl,sites-available,sites-enabled}
 
-# Output virtual host data into Nginx folder
+## Check if we want HTTP or HTTPS as well
+read -p "${C_RED}Please confirm which option you want to continue with$C_END
+1) Only HTTP
+2) Only HTTPS
+3) Both HTTP and HTTPS$C_END
+ " options </dev/tty
+case "$options" in
+	1)
+		protocol='http'
+		;;
+	2)
+		protocol='https'
+		;;
+	3)
+		protocol='both'
+		;;
+esac
+
+## Output virtual host data into Nginx folder
 function create_nginx_config {
 	curl -Ls $NGINXCONF | sed -e "s/\###WEB_USER###/${WEB_USER}/"
 }
 
-# Output virtual host data into Nginx folder
-function create_rutorrent_vhost {
-	curl -Ls $NGINXVHOST |
+## Output virtual host data into Nginx folder
+function CREATE_NGINX_VHOSTS {
+	vhost1=curl -Ls $NGINX_VHOST |
 	sed -e "s/\###HOSTNAME###/${HOSTNAME}/" |
 	sed -e "s/\###WEB_USER###/${WEB_USER}/" |
 	sed -e "s/\###USER###/${USER}/"
+
+	vhost2=$(curl -Ls $NGINX_VHOST_SSL |
+	sed -e "s/\###HOSTNAME###/${HOSTNAME}/" |
+	sed -e "s/\###WEB_USER###/${WEB_USER}/" |
+	sed -e "s/\###USER###/${USER}/")
+
+	vhost1 > /etc/nginx/sites-available/rutorrent
+	vhost2 > /etc/nginx/sites-available/rutorrent_ssl
 }
 
 create_nginx_config > /etc/nginx/nginx.conf
-create_rutorrent_vhost > /etc/nginx/sites-available/rutorrent
 
-# Restart Nginx and php5-fpm
+## Restart Nginx and php5-fpm
 service nginx restart
 service php5-fpm restart
 
