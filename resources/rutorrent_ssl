@@ -1,9 +1,15 @@
 server {
-	listen ###HTTP_PORT###;
-	#listen [::]:###HTTP_PORT###; # Uncomment if you want IPv6 support
+	listen ###HTTPS_PORT### ssl;
+	#listen [::]:###HTTPS_PORT### ssl; # Uncomment if you want IPv6 support
 
 	server_name ###HOSTNAME###;
 	root /home/###WEB_USER###/sites/rutorrent;
+
+	ssl_certificate /etc/nginx/ssl/rutorrent.crt;
+	ssl_certificate_key /etc/nginx/ssl/rutorrent.key;
+	ssl_protocols TLSv1.2 TLSv1.1 TLSv1;
+	ssl_ciphers HIGH:!aNULL:!MD5;
+	ssl_prefer_server_ciphers on;
 
 	index index.html index.php;
 
@@ -12,8 +18,8 @@ server {
 
 	# It's always good to set logs, note however you cannot turn off the error log
 	# setting error_log off; will simply create a file called 'off'.
-	access_log /home/###WEB_USER###/logs/rutorrent.access.log main;
-	error_log  /home/###WEB_USER###/logs/rutorrent.error.log warn;
+	access_log /home/###WEB_USER###/logs/rutorrent_ssl.access.log main;
+	error_log  /home/###WEB_USER###/logs/rutorrent_ssl.error.log warn;
 
 	# This block will catch static file requests, such as images, css, js
 	# The ?: prefix is a 'non-capturing' mark, meaning we do not require
