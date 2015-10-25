@@ -7,10 +7,14 @@ GITHUB_REPO="seedbox"
 GITHUB_BRANCH="master"
 GITHUB_URL="https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}"
 
+## RTORRENT DOMAINS
+RTORRENT_DOMAIN="http://rtorrent.net/downloads"
+MIRROR_DOMAIN="https://bashy.im"
+
 ## CONFIGURATION
 RUTORRENT_GIT="https://github.com/Novik/ruTorrent.git"
 RTORRENT="0.9.4"
-LIBTORRENT="0.13.4"
+LIBTORRENT="0.13.6"
 ## XMLRPC="1.25.29" # works
 XMLRPC="latest" # change this to "latest" for latest release
 PHP="5.6"
@@ -235,14 +239,11 @@ libsigc++-2.0-dev zlib1g-dev libcurl4-openssl-dev libncurses5-dev libcppunit-dev
 
 ## Add Nginx and PHP repositories
 add-apt-repository "deb http://nginx.org/packages/mainline/debian/ jessie nginx"
-add-apt-repository "deb http://packages.dotdeb.org jessie all"
 
 ## Setup Nginx for our web server
 curl -LO http://nginx.org/keys/nginx_signing.key
-curl -LO http://www.dotdeb.org/dotdeb.gpg
 apt-key add nginx_signing.key
-apt-key add dotdeb.gpg
-rm nginx_signing.key dotdeb.gpg
+rm nginx_signing.key
 
 apt-get update
 apt-get install -y nginx php5-fpm php5-curl php5-cli php5-mcrypt php5
@@ -252,21 +253,21 @@ MAKE_TEMP_PATH && cd $TEMP_PATH
 
 if [ $MIRROR = true ]; then
 	## libTorrent
-	curl -LO https://bashy.im/o/libtorrent-$LIBTORRENT.tar.gz
+	curl -LO $MIRROR_DOMAIN/o/libtorrent-$LIBTORRENT.tar.gz
 	## rTorrent
-	curl -LO https://bashy.im/o/rtorrent-$RTORRENT.tar.gz
+	curl -LO $MIRROR_DOMAIN/o/rtorrent-$RTORRENT.tar.gz
 else
 	## libTorrent
-	curl -LO http://libtorrent.rakshasa.no/downloads/libtorrent-$LIBTORRENT.tar.gz
+	curl -LO $RTORRENT_DOMAIN/downloads/libtorrent-$LIBTORRENT.tar.gz
 	## rTorrent
-	curl -LO http://libtorrent.rakshasa.no/downloads/rtorrent-$RTORRENT.tar.gz
+	curl -LO $RTORRENT_DOMAIN/downloads/rtorrent-$RTORRENT.tar.gz
 fi
 
 ## XMLRPC
 if [ $XMLRPC = "latest" ]; then
 	curl -L http://sourceforge.net/projects/xmlrpc-c/files/latest/download -o xmlrpc-c-latest.tar.gz
 else
-	curl -LO https://bashy.im/o/xmlrpc-c-$XMLRPC.tar.gz
+	curl -LO $MIRROR_DOMAIN/o/xmlrpc-c-$XMLRPC.tar.gz
 fi
 
 ## Extract libraries
