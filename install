@@ -234,8 +234,8 @@ fi
 ## Install some required packages
 apt-get update
 apt-get install -y unrar-free unzip git screen curl openssl apache2-utils \
-python-software-properties build-essential automake libtool libssl-dev \
-libsigc++-2.0-dev zlib1g-dev libcurl4-openssl-dev libncurses5-dev libcppunit-dev
+python-software-properties software-properties-common build-essential automake \
+libtool libssl-dev libsigc++-2.0-dev zlib1g-dev libcurl4-openssl-dev libncurses5-dev libcppunit-dev
 
 ## Add Nginx and PHP repositories
 add-apt-repository "deb http://nginx.org/packages/mainline/debian/ jessie nginx"
